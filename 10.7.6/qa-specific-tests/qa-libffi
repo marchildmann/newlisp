@@ -1,0 +1,138 @@
+#!/usr/bin/env newlisp
+
+# run this from the main distribution directory:
+#   ./newlisp qa-specific-tests/qa-libffi
+
+# for testing simple and extended ffi on a more complex, real-world library:
+#    use examples/opengl-demo.lsp for simple ffi testing
+#    use examples/opengl-demo-ffi.lsp for extended ffi testing
+
+(when (zero? (& 1024 (sys-info -1)))
+    (println ">>>>> qa-libffi: tests only run on extended FFI enabled versions compiled with libffi")
+    (exit))
+
+(set-locale "C")
+
+(set 'CC (if (= ostype "Windows") "gcc" "cc"))
+
+(define (compile-recover CC-CALL) ; thanks to Rick Hansen
+  ;; Exec the compiler invocation CC-CALL (which is a string) and, on
+  ;; failure, check certain error conditions, amend the invocation and try
+  ;; again. This routine only handles re-compiling with -fPIC, for now.
+  (let (cc-call-output (exec (string CC-CALL " 2>&1")))
+    (if (not (empty? cc-call-output))
+        ;; You can expand the following IF to handle more recovery cases.
+        (if (find "recompile with -fPIC" (join cc-call-output " "))
+            (compile-recover (string CC-CALL " -fPIC"))
+            ;; Default case: if you've exhausted your recovery cases, then
+            ;; just throw out the compiler's error message to the console.
+            (! CC-CALL)))))
+
+    (if (ends-with (real-path) "qa-specific-tests")
+        (if (zero? (& 0x100 (sys-info -1)))
+            (compile-recover (append CC " -m32 ../util/ffitest.c -shared -o ffitest.dylib"))
+            (compile-recover (append CC " -m64 ../util/ffitest.c -shared -o ffitest.dylib")))
+        (if (zero? (& 0x100 (sys-info -1)))
+            (compile-recover (append CC " -m32 util/ffitest.c -shared -o ffitest.dylib"))
+            (compile-recover (append CC " -m64 util/ffitest.c -shared -o ffitest.dylib")))
+    )
+
+(if (and
+    (import "./ffitest.dylib" "ret_float" "float" "float")
+    (println "float => " (< (abs (sub (ret_float 123456.7890) 123456.7890)) 0.0001))
+;    (println "float => " (sub (ret_float 123456.7890) 123456.7890)) 
+
+    (import "./ffitest.dylib" "ret_double" "double" "double")
+    (println "double => "(= (ret_double 123456.7890) 123456.7890))
+
+    (import "./ffitest.dylib" "add_double" "double" "double" "double")
+    (println "add double => "(= (add_double 123456.7890 123456.7890) 246913.578))
+
+    (import "./ffitest.dylib" "ret_uint8" "byte" "byte")
+    (println "byte => " (= (ret_uint8 -1) 255))
+
+    (import "./ffitest.dylib" "ret_uint16" "unsigned short int" "unsigned short int")
+    (println "unsigned short int => "(= (ret_uint16 -1) 65535))
+
+    (import "./ffitest.dylib" "ret_uint32" "unsigned int" "unsigned int")
+    (println "unsigned int => "(= (ret_uint32 -1) 4294967295))
+
+    (import "./ffitest.dylib" "ret_sint8" "char" "char")
+    (println "char => " (= (ret_sint8 255) -1))
+
+    (import "./ffitest.dylib" "ret_sint16" "short int" "short int")
+    (println "short int => " (= (ret_sint16 65535) -1))
+
+    (import "./ffitest.dylib" "ret_sint32" "int" "int")
+    (println "int => " (= (ret_sint32 4294967295) -1))
+
+    (import "./ffitest.dylib" "ret_pointer" "char*" "char*")
+    (println "char* => " (= (ret_pointer "hello world") "HELLO WORLD"))
+
+    (import "./ffitest.dylib" "string_copy" "char*" "char*" "char*")        
+    (set 'from "hello")
+    (set 'to (dup "\000" (length from)))
+    ; char* will only accept string since 10.4.2
+    ; for address number use void*
+    (set 'ret (string_copy from to)) ; copy from to
+    (println "copy char* => " to " => " (= "hello" to) )
+    (println "return => " ret)
+    )
+  (println ">>>>> libffi API testing SUCCESSFUL")
+  (println ">>>>> ERR testing libffi API"))
+
+;; test simple import and callback API
+(import "./ffitest.dylib" "register_callback_simple" "cdecl")
+(import "./ffitest.dylib" "trigger_callback_simple" "cdecl")
+(define (callme-simple ptr int-num) 
+    (print (get-string ptr)  int-num)
+    (if (= int-num 1234567890)
+        (println " (simple callback API) SUCCESSFUL")
+        (println "ERR in simple callback API")
+    )) 
+
+(register_callback_simple (callback 0 'callme-simple))
+
+(trigger_callback_simple)
+
+;; test extended callback API
+(import "./ffitest.dylib" "register_callback" "void" "void*")
+(import "./ffitest.dylib" "trigger_callback" "void")
+
+(define (callme ptr int-num double-num) 
+    (print (get-string ptr)  int-num " " double-num)
+    (if (and (= int-num 1234567890) (= double-num 12345.67890))
+        (println " (extended callback API) SUCCESSFUL")
+        (println "ERR in extended callback API")
+    ))
+
+(set 'is64bit (not (zero? (& 256 (sys-info -1)))))
+
+(register_callback (callback 'callme "void" "char*" "int" "double" ))
+
+(trigger_callback)
+
+(if (and
+		(= (struct 'clock "char" "int" "short int") 'clock)
+		(= (struct 'foo "char" "int" "short int") 'foo)
+		(= (unpack foo (pack clock 1 2 3)) '(1 2 3))
+		(import "./ffitest.dylib" "addClock" "clock" "clock")
+		(= (addClock (pack clock 1 2 3)) '(2 3 4)) )
+	(println ">>>>> struct tested SUCCESSFUL")
+	(println ">>>>> ERR in struct function")
+)
+
+
+(if (and
+        (= (struct 'sfoo "char" "int" "short int" "char*") 'sfoo)
+        (import "./ffitest.dylib" "useFoo" "void*" "int")
+        (= (unpack sfoo (pack sfoo 1 2 3 "hello world")) '(1 2 3 "hello world"))
+        (= (unpack sfoo (useFoo 10)) '(11 12 13 "hello world")) )
+    (println ">>>>> struct ptr tested SUCCESSFUL")
+    (println ">>>>> ERR in struct ptr testing"))
+
+
+(delete-file "ffitest.dylib")
+
+(exit)
+

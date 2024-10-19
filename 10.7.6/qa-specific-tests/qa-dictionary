@@ -1,0 +1,78 @@
+#!/usr/bin/env newlisp
+
+; qa-dictionary
+; check dictionary creation
+
+;(macro (double X) (+ x x))
+;(macro (triple X) (+ x x x))
+;(macro (bar X) (+ x x x))
+
+
+(println)
+(println "Testing and benchmarking namespaces")
+
+(set 'N 10000)
+
+(if (main-args 2)
+	(set 'N (int (main-args 2))))
+
+; define name-space, force creation, stay in MAIN
+(context 'Lex) (context MAIN)
+
+(define (qa-dictionary)
+    (set 'data (randomize (sequence 1 N)))
+    (set 'ass (map list (map string data) data))
+	(println "N of associations: " N)
+	(println "number of cells before creating Lex: " (sys-info 0))
+    (println "time to aquire from association list: " (set 'ta (time (Lex ass))) " ms")
+	(println "time to aquire one entry: " 
+		(format "%5.3f" (mul 1000 (div ta N))) (append " " (char  956) "s"))
+
+	(print "time reading and verifying entries ... : ")
+	(set 'start (time-of-day))
+	(set 'sum 0)
+	(dolist (a ass)
+		(if (!= (Lex (a 0)) (a 1)) 
+			(begin
+				(println "Error: " (Lex (a 0)) " != " (a 1))
+				(set 'read-error true))))
+	(set 'ta (- (time-of-day) start))
+	(println ta " ms")
+	(println "time to read and verify one entry: "
+			(format "%5.3f" (mul 1000 (div ta N))) (append " " (char  956) "s"))
+
+	(set 'start (time-of-day))
+	(set 'sum 0)
+	(dolist (a ass)
+		(Lex (a 0)) )
+	(set 'ta (- (time-of-day) start))
+	(println "time to only read one entry: "
+			(format "%5.3f" (mul 1000 (div ta N))) (append " " (char  956) "s"))
+
+	(println "number of cells after creating Lex: " (sys-info 0))
+	(println "N of symbols in Lex: " (set 'ns (length (Lex))))
+	(println "time to save to file: " (time (save "Lex.lsp" 'Lex)) " ms")
+	(println "time to delete namespace: " (set 'td (time (delete 'Lex))) " ms")
+	(println "time to delete one symbol: "
+		(format "%5.3f" (mul 1000 (div td ns))) (append " " (char  956) "s"))
+	(println "number of cells after deleting Lex: " (sys-info 0))
+	(println "time to load namespace: " (time (load "Lex.lsp")) " ms")
+	(println "number of cells after loading Lex: " (sys-info 0))
+	(println "time to save Lex2: " (time (save "Lex2.lsp" 'Lex)) " ms")
+	(println)
+	(if (and (not read-error) (= (read-file "Lex.lsp") (read-file "Lex2.lsp")))
+		(println ">>>>> Dictionary API tested SUCCESSFUL")
+		(println ">>>>> PROBLEM in dictionary API"))
+)
+
+(qa-dictionary)
+(delete-file "Lex.lsp")
+(delete-file "Lex2.lsp")
+(delete 'Lex)
+(set 'data nil)
+(set 'ass nil)
+(if (main-args 2) 
+    (println (sys-info))
+    (exit))
+
+

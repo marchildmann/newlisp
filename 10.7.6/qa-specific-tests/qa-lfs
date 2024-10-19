@@ -1,0 +1,41 @@
+#!/usr/bin/env newlisp
+
+;; Test for LFS (Large Files Support)
+;; create a file with more than 2^32 bytes
+;; and read back some records for verification
+;; Needs approximately 5 Gigabyte of diskspace
+;; writing a file of 5,000,000 records of 1k each.
+
+(println)
+(println "This test for LFS (Large Files Support) takes a long time to run.")
+(println "It writes 5 Million records to a 5 Gigabyte filei, then reads back.")
+(println)
+(print "You really want to run this test y/n ? ")
+(if (not (starts-with (read-line) "y" 1))
+	(exit))
+
+(set 'file (open "largefile" "write"))
+
+(dotimes (i 5000000)
+	(set 'rec (append (format "%08d" i) (dup "#" 992)))
+	(write-buffer file rec 1000)
+	(if (= 0 (% i 10000)) (print (format "%10d KB of 5000000 KB written \r" i)))
+)
+(close file)
+
+(println)
+
+(set 'file (open "largefile" "read"))
+
+(for (i 0 4999999 10000)
+	(set 'test (append (format "%08d" i) (dup "#" 992)))
+    (seek file (mul i 1000))
+	(read-buffer file rec 1000)
+	(if (= test rec) 
+		(print (format "%8d record -> Ok\r" i) (0 8 rec))
+		(println i " record -> Error reading " (0 8 rec)))
+)	
+
+(printlni ">>>>> tested Large file system support")
+(exit)
+

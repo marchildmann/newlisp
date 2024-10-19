@@ -1,0 +1,36 @@
+#!/usr/bin/env newlisp
+#
+# two forked processes communicating via pipes
+
+(when (find ostype '("Windows"))
+    (println "fork not available on Windows")
+	(exit))
+
+
+(println)
+(println "Testing/benchmarking  pipes with forked processes")
+
+(set 'start (time-of-day))
+(set 'N 1000)
+
+(define (count-down-proc x channel)
+  (while (!= x 0)
+      (write-line channel (string x))
+      (dec x)))
+
+(define (observer-proc channel)
+  (do-until (= i "1")
+    (print "read " (setq i (read-line channel)) "\r")
+))
+
+(map set '(in out) (pipe))
+(set 'observer (fork (observer-proc in)))
+(set 'counter (fork (count-down-proc N out)))
+
+; avoid zombies
+(wait-pid observer)
+(wait-pid counter)
+
+(println ">>>>> " (div (- (time-of-day) start)  N) 
+" ms per write->read pipe/fork (0.0356 ms Mac OSX, 1.83 GHz Core 2 Duo)")
+(exit)

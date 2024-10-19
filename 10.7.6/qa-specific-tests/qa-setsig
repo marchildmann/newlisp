@@ -1,0 +1,63 @@
+#!/usr/bin/env newlisp
+#
+# check out customized signal handlers
+#
+# USAGE: qa-setsig <low-bound> <high-bound>
+#
+# example: qa-setsig 1 8
+#
+# checks all signals between 1 and 8
+#
+# run without arguments for testing 1-8, 10-16
+#
+# USAGE: qa-setsig
+#
+
+(println)
+(println "Testing signals")
+
+(when (find ostype '("Windows"))
+	(println "Cannot run qa-signal on this platform because uses 'fork'")
+	(exit))
+
+(set 'low (int (main-args 2)))
+(set 'high (int (main-args 3)))
+(set 'pid (sys-info -3))
+
+(if low
+	(println "low=" low " hight=" high " pid=" pid))
+
+(define (alarm sig)
+	(if (= sig high) (set 'done true)) 
+	(print "sig-" sig " ")
+	(push sig result-list -1)
+)
+
+(if (and low high) 
+	(set 'sig-list (sequence low high))
+	(set 'sig-list (append (sequence 1 8) (sequence 10 16))))
+
+(set 'high (last sig-list))
+
+(dolist (s sig-list) (signal s alarm))
+
+(fork (begin
+		(dolist (s sig-list)
+			(sleep 200)
+			(destroy pid (int s)))
+		(sleep 200)
+;		(destroy pid 9)
+))
+
+(println)
+(while (not done)  (print ".") (sleep 100))
+(println)
+(println "sent: " sig-list)
+(println "received: " result-list)
+(println)
+(if (= result-list sig-list)
+	(println ">>>>> Signal testing SUCCESSFUL")
+	(println ">>>>> PROBLEM in signal TESTING"))
+
+(println)
+(exit)

@@ -1,0 +1,23 @@
+# makefile for newLISP v. 10.x.x on Mac OSX LP64 memory model with readline support
+#
+# for OS X 10.5/Leopard, Leopard comes standard with libreadline
+#
+# needs a G5 or core 2 duo to run. Passes 'make test' on intel core 2 duo
+
+OBJS = newlisp.o nl-symbol.o nl-math.o nl-list.o nl-liststr.o nl-string.o nl-filesys.o \
+	nl-sock.o nl-import.o nl-xml-json.o nl-web.o nl-matrix.o nl-debug.o pcre.o
+
+CFLAGS = -m64 -Wall -O1 -c -g -DREADLINE -DMAC_OSX -DNEWLISP64
+
+CC = cc
+
+default: $(OBJS)
+	$(CC) $(OBJS) -m64 -g -lm -lreadline -o newlisp
+	strip newlisp
+
+.c.o:
+	$(CC) $(CFLAGS) $<
+
+$(OBJS): newlisp.h primes.h protos.h makefile_darwinLP64
+
+

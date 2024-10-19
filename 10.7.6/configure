@@ -1,0 +1,144 @@
+#!/bin/sh
+
+# Only LP64, LLP64 and ILP32 memory models are supported
+echo
+echo "removing old objects and setting correct permissions ..."
+make clean > /dev/null
+cp makefile_original_install makefile_install
+echo "discovering platform and default memory model ..."
+echo
+
+case `uname` in 
+	Darwin) true ${os_type:=MAC_OSX} ;;
+	Linux)  true ${os_type:=LINUX} ;;
+	FreeBSD) true ${os_type:=_BSD} ;;
+	NetBSD) true ${os_type:=_BSD} ;;
+	OpenBSD) true ${os_type:=_BSD} ;;
+	SunOS) true ${os_type:=SUNOS} ;;
+	AIX) true ${os_type:=AIX} ;; 
+	OSF1) true ${os_type:=TRU64} ;;
+	MINGW32_*) true ${os_type:=WINDOWS} ;;
+	MINGW64_*) true ${os_type:=WINDOWS} ;;
+	CYGWIN*) true ${os_type:=CYGWIN} ;;
+	OS/2) true ${os_type:=OS2} ;;
+	*)
+		echo Could not discover your OS platform use one of the following commands:
+		make help
+		;;
+esac
+
+cat > test-memorymodel.c <<EOF
+/* test-memorymodel.c Ted Walther <ted@reactor-core.org>
+ *
+ * return a string with the type of memory model the current compiler is using.
+ */
+
+#include <stdio.h>
+
+int
+main(int argc, char** argv) {
+	short sc = sizeof(char) * 8;
+	short ss = sizeof(short) * 8;
+	short si = sizeof(int) * 8;
+	short sl = sizeof(long) * 8;
+	short sp = sizeof(void*) * 8;
+
+	if (si == 32 && sl == 64 && sp == 64) { printf("LP64\n"); return 0; }
+	if (si == 64 && sl == 64 && sp == 64) { printf("ILP64\n"); return 0; }
+	if (si == 32 && sl == 32 && sp == 64) { printf("LLP64\n"); return 0; }
+	if (si == 32 && sl == 32 && sp == 32) { printf("ILP32\n"); return 0; }
+	if (si == 16 && sl == 32 && sp == 32) { printf("LP32\n"); return 0; }
+	printf("UNKNOWN\n"); return 1;
+}
+EOF
+
+if [ `which gcc` ] ; then
+	gcc test-memorymodel.c -o test-memorymodel >/dev/null
+else
+	cc test-memorymodel.c -o test-memorymodel >/dev/null
+fi
+
+true ${memory_model:=`./test-memorymodel`}
+
+# clean up
+rm -f test-memorymodel*
+
+echo "detected memory model ${memory_model}"
+echo "detected Operating System ${os_type}"
+echo "creating makefile_build ..."
+echo
+
+if   [ ${os_type} = MAC_OSX ] ; then
+	cp makefile_darwinLP64_utf8_ffi makefile_build
+elif [ ${os_type} = LINUX ] ; then
+	if [ -f /etc/redhat-release ] ; then
+		libffi_version=$(ls -d /usr/lib*/libffi*/include)
+        if [ -z "${libffi_version}" ] ; then
+            libffi_version="/usr/include"
+        fi
+		if [ ${memory_model} = LP64 ] ; then
+			sed "s,LIBFFI_VERSION,${libffi_version},g" makefile_linuxLP64_redhat_utf8_ffi > makefile_build
+		else
+			sed "s,LIBFFI_VERSION,${libffi_version},g" makefile_linux_redhat_utf8_ffi > makefile_build
+		fi
+	else
+		if [ ${memory_model} = LP64 ] ; then
+			cp makefile_linuxLP64_utf8_ffi makefile_build
+		else
+			cp makefile_linux_utf8_ffi makefile_build
+		fi		
+	fi
+elif [ ${os_type} = _BSD ] ; then
+	if [ ${memory_model} = LP64 ] ; then
+		if [ -f /usr/local/include/ffi.h ] ; then
+			cp makefile_bsdLP64_utf8_ffi makefile_build
+		else
+			cp makefile_bsdLP64_utf8 makefile_build
+		fi
+	else
+		cp makefile_bsd_utf8 makefile_build
+	fi
+elif [ ${os_type} = SUNOS ] ; then
+	if [ ${memory_model} = LP64 ] ; then
+		cp makefile_sunosLP64_uf8 makefile_build
+	else
+		cp makefile_sunos_utf8 makefile_build
+	fi
+elif [ ${os_type} = AIX ] ; then
+	if [ ${memory_model} = LP64 ] ; then
+		cp makefile_aixLP64_utf8_gcc makefile_build
+	else
+		cp makefile_aix_utf8_gcc makefile_build
+	fi
+elif [ ${os_type} = TRU64 ] ; then
+	cp makefile_tru64 makefile_build
+elif [ ${os_type} = WINDOWS ] ; then
+	if [ ${memory_model} = LLP64 ] ; then
+		cp makefile_mingw64_ffi makefile_build
+	else
+		cp makefile_mingw_ffi makefile_build
+	fi
+elif [ ${os_type} = CYGWIN ] ; then
+	cp makefile_cygwin makefile_build
+	if [ ${memory_model} = LP64 ]; then
+	cp makefile_cygwinLP64 makefile_build
+	else 
+	cp makefile_cygwin makefile_build
+    fi
+elif [ ${os_type} = OS2 ] ; then
+	cp makefile_os2 makefile_build
+fi
+
+
+
+if   [ ${os_type} = MAC_OSX ] ; then
+    echo "to make for 64-bit on MAC_OSX type:"
+else
+	echo "to make for ${memory_model} on ${os_type} type:"
+fi
+echo "    make"
+echo "to make for any other system do:"
+echo "    make -f makefile_xxx"
+echo "where makefile_xxx is one of the preconfigured makefiles"
+echo
+

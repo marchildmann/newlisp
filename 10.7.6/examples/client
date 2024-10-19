@@ -1,0 +1,38 @@
+#!/usr/bin/env newlisp
+
+;;  client for  client/server demo
+;;
+;;  USAGE: client hostName
+;;
+;; 'hostName' contains a string with the name or IP number
+;; of the computer running the server application
+;;
+;; The client prompts for input and sends it to the
+;; server which sends it back converted to uppercase
+;;
+;; The server has to be started first in a different
+;; terminal window or on a different computer.
+;;
+;; v 1.3
+;; v 1.4 change net-receive for v 10.0
+;;
+
+(define (net-client-receive socket , buf)
+  (net-receive socket buf 256)
+  (print "\n" buf "\ninput or 'quit' to exit:")
+  (if (= buf "bye bye!") (exit))
+  (net-send socket (read-line)))
+
+(define (client host-computer)
+  (set 'socket (net-connect host-computer 1111))
+  (if (not socket) 
+    (print "could not connect, is the server started?\n") 
+    (while true (net-client-receive socket))))
+
+(if (not (main-args 2)) 
+  (begin 
+    (print "USAGE: client hostName\n")
+    (exit)))
+
+(client (main-args 2))
+(exit)

@@ -1,0 +1,21 @@
+# makefile for newLISP v. 10.x.x on SUNOS with UTF-8 support on Sparc CPU
+#
+#
+
+OBJS = newlisp.o nl-symbol.o nl-math.o nl-list.o nl-liststr.o nl-string.o nl-filesys.o \
+	nl-sock.o nl-import.o nl-xml-json.o nl-web.o nl-matrix.o nl-debug.o nl-utf8.o pcre.o
+
+
+# use following for UTF-8 support and add nl-utf8.o to the OBJS line
+CFLAGS = -m32 -Wall -pedantic -Wno-uninitialized -Wno-long-long -c -O2 -DREADLINE -DSUPPORT_UTF8 -DSUNOS
+
+CC = gcc
+
+
+default: $(OBJS)
+	$(CC) $(OBJS) -m32 -lm -ldl -lrt -lsocket -lnsl -lreadline -lncurses -o newlisp
+
+.c.o:
+	$(CC) $(CFLAGS) $<
+
+$(OBJS): primes.h protos.h makefile_sunos_utf8

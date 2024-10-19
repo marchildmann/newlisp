@@ -1,0 +1,18 @@
+# makefile for newLISP v. 10.x.x on SunOS 32-bit with UTF-8 support on Sparc CPU
+#
+#
+
+OBJS = newlisp.o nl-symbol.o nl-math.o nl-list.o nl-liststr.o nl-string.o nl-filesys.o \
+	nl-sock.o nl-import.o nl-xml-json.o nl-web.o nl-matrix.o nl-debug.o pcre.o
+
+CFLAGS = -m32 -Wall -pedantic -Wno-uninitialized -Wno-long-long -fno-strict-aliasing -c -O2 -DREADLINE -DSUNOS
+
+CC = gcc 
+
+default: $(OBJS)
+	$(CC) $(OBJS) -m32 -lm -ldl -lrt -lsocket -lnsl -lreadline -lncurses -o newlisp
+
+.c.o:
+	$(CC) $(CFLAGS) $<
+
+$(OBJS): primes.h protos.h makefile_sunos
