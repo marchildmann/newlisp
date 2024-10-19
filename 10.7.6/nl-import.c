@@ -29,6 +29,22 @@
 #include <sys/mman.h>
 #endif
 
+typedef UINT (*Func0)();
+typedef UINT (*Func1)(UINT);
+typedef UINT (*Func2)(UINT, UINT);
+typedef UINT (*Func3)(UINT, UINT, UINT);
+typedef UINT (*Func4)(UINT, UINT, UINT, UINT);
+typedef UINT (*Func5)(UINT, UINT, UINT, UINT, UINT);
+typedef UINT (*Func6)(UINT, UINT, UINT, UINT, UINT, UINT);
+typedef UINT (*Func7)(UINT, UINT, UINT, UINT, UINT, UINT, UINT);
+typedef UINT (*Func8)(UINT, UINT, UINT, UINT, UINT, UINT, UINT, UINT);
+typedef UINT (*Func9)(UINT, UINT, UINT, UINT, UINT, UINT, UINT, UINT, UINT);
+typedef UINT (*Func10)(UINT, UINT, UINT, UINT, UINT, UINT, UINT, UINT, UINT, UINT);
+typedef UINT (*Func11)(UINT, UINT, UINT, UINT, UINT, UINT, UINT, UINT, UINT, UINT, UINT);
+typedef UINT (*Func12)(UINT, UINT, UINT, UINT, UINT, UINT, UINT, UINT, UINT, UINT, UINT, UINT);
+typedef UINT (*Func13)(UINT, UINT, UINT, UINT, UINT, UINT, UINT, UINT, UINT, UINT, UINT, UINT, UINT);
+typedef UINT (*Func14)(UINT, UINT, UINT, UINT, UINT, UINT, UINT, UINT, UINT, UINT, UINT, UINT, UINT, UINT);
+
 UINT cdeclFunction(UINT fAddress, UINT * args, int count);
 extern int evalCatchFlag;
 
@@ -247,66 +263,51 @@ return(stuffInteger(cdeclFunction(pCell->contents, args, count)));
 
 UINT cdeclFunction(UINT fAddress, UINT * args, int count)
 {
-UINT (*function)();
-
-function = (UINT (*)())fAddress;
-
-switch(count)
+    switch(count)
     {
     case 0:
-            return (*function)();
-
+            return ((Func0)fAddress)();
     case 1:
-            return  (*function)(args[0]);
-
+            return ((Func1)fAddress)(args[0]);
     case 2:
-            return  (*function)(args[0], args[1]);
-
+            return ((Func2)fAddress)(args[0], args[1]);
     case 3:
-            /* printf("args[0] %llx, args[1] %llx, args[2] %llx, args[1]-args[2] %llx\n ",
-                    args[0], args[1], args[2], args[1] - args[2]); */
-
-            return  (*function)(args[0], args[1], args[2]);
+            return ((Func3)fAddress)(args[0], args[1], args[2]);
     case 4:
-
-            return  (*function)(args[0], args[1], args[2], args[3]);
-
+            return ((Func4)fAddress)(args[0], args[1], args[2], args[3]);
     case 5:
-            return  (*function)(args[0], args[1], args[2], args[3],
+            return ((Func5)fAddress)(args[0], args[1], args[2], args[3],
                      args[4]);
     case 6:
-            return  (*function)(args[0], args[1], args[2], args[3],
+            return ((Func6)fAddress)(args[0], args[1], args[2], args[3],
                      args[4], args[5]);
     case 7:
-            return  (*function)(args[0], args[1], args[2], args[3],
+            return ((Func7)fAddress)(args[0], args[1], args[2], args[3],
                      args[4], args[5], args[6]);
     case 8:
-            return  (*function)(args[0], args[1], args[2], args[3],
+            return ((Func8)fAddress)(args[0], args[1], args[2], args[3],
                      args[4], args[5], args[6], args[7]);
-
     case 9:
-            return  (*function)(args[0], args[1], args[2], args[3],
+            return ((Func9)fAddress)(args[0], args[1], args[2], args[3],
                      args[4], args[5], args[6], args[7], args[8]);
-
     case 10:
-            return  (*function)(args[0], args[1], args[2], args[3],
+            return ((Func10)fAddress)(args[0], args[1], args[2], args[3],
                      args[4], args[5], args[6], args[7], args[8], args[9]);
     case 11:
-            return  (*function)(args[0], args[1], args[2], args[3],
+            return ((Func11)fAddress)(args[0], args[1], args[2], args[3],
                 args[4], args[5], args[6], args[7],
                 args[8], args[9], args[10]);
     case 12:
-            return  (*function)(args[0], args[1], args[2], args[3],
+            return ((Func12)fAddress)(args[0], args[1], args[2], args[3],
                 args[4], args[5], args[6], args[7],
                 args[8], args[9], args[10], args[11]);
-
     case 13:
-            return  (*function)(args[0], args[1], args[2], args[3],
+            return ((Func13)fAddress)(args[0], args[1], args[2], args[3],
                 args[4], args[5], args[6], args[7],
                 args[8], args[9], args[10], args[11],
                 args[12]);
     case 14:
-            return  (*function)(args[0], args[1], args[2], args[3],
+            return ((Func14)fAddress)(args[0], args[1], args[2], args[3],
                 args[4], args[5], args[6], args[7],
                 args[8], args[9], args[10], args[11],
                 args[12], args[13]);
@@ -314,7 +315,7 @@ switch(count)
         break;
     }
 
-return(0);
+    return(0);
 }
 
 

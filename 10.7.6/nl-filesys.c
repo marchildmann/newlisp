@@ -2889,7 +2889,8 @@ return(dateValue);
 
 
 #ifdef MAC_OSX
-extern int nanosleep();
+#include <time.h>
+//extern int nanosleep();
 #endif
 
 void mySleep(int ms)
